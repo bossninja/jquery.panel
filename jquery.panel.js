@@ -115,7 +115,7 @@
   		"selector":this.selector,
   		"usemodal":true,
   		"modalclose":true,
-  		"maxsize":1.01
+  		"maxsize":0.9
   	}
   	
   	var actions = {
