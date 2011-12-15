@@ -212,7 +212,7 @@
                 positionPanel()
                 content.find(options.selector).click(function(e){
                     e.preventDefault();
-                    loadPanel($(this).attr("src"));
+                    loadPanel($(this).attr("href"));
                 });
                 
                 content.find('[rel^="action"]').click(function(e){
