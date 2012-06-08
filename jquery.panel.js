@@ -1,3 +1,264 @@
+
+(function( $ ) {
+  $.fn.panel = function(settings) {
+  	var options = {
+  		"close":"<span>close</span>",
+  		"id":"Panel",
+  		"selector":this.selector,
+  		"usemodal":true,
+  		"modalclose":true,
+  		"maxsize":0.9
+  	}
+  	
+  	var actions = {
+  		"close":closePanel,
+  		'resize':positionPanel
+  	}
+  	
+  	// set user options
+  	$.extend(options,settings);
+  	
+  	if($('#'+options.id).length==0){
+	  	var container = $('<div id="'+options.id+'"></div>').appendTo(document.body).css({
+	  		'position':'fixed',
+	  		'left':0,
+	  		'top':0,
+	  		'width':1,
+	  		'height':1,
+	  		'z-index':9999
+	  	})
+	  	
+	  	// embed the modal
+	  	if(options.usemodal){
+	  		var modal = $('<div class="panel-modal">&nbsp;</div>')
+	  			.appendTo(container);
+	  		if(options.modalclose)modal.click(function(){
+	  			closePanel();
+	  		})
+	  	}
+	  	  	
+	  	// embed panel box
+	  	var box = $('<div class="panel-box"><div class="panel-wrapper"><div class="panel-content"></div></div></div>')
+	  		.appendTo(container)
+	  		.css({
+	  			'position':'fixed',
+	  			'left':($(window).width()*.5),
+	  			'top':($(window).height()*.5)
+	  		})
+	  		.hide();
+		
+		var wrapper = box.find('.panel-wrapper')
+			.css({
+				'overflow':'hidden',
+				'width':1,
+				'height':1
+			});
+		
+	  	// identify content box
+	  	var content = box.find(".panel-content")
+	  		.css({
+	  			'height':'auto',
+	  			'overflow':'hidden'
+	  		});
+  	}
+  	// Setup Closer
+  	if(options.close.length>0){
+  		var closer = $('<div class="panel-closer">'+options.close+'</div>')
+  			.appendTo(box)
+  			.click(function(){
+  				closePanel();
+  			});
+  	}
+  	
+  	$.fn.panelbox = {
+  		'updatesize':function (){
+	  		var winWidth = $(window).width();
+	  		var winHeight = $(window).height();
+	  		
+	  		if(options.usemodal)modal.css({
+	  			'width':winWidth,
+	  			'height':winHeight
+	  		});
+	  		
+	  		var width = content[0].scrollWidth;
+	  		var height = content[0].scrollHeight;	  		
+	  		
+	  		// set scrolling
+	  		wrapper.css('overflow-y',(height > (winHeight*options.maxsize)) ? 'scroll' : 'hidden');
+	  		  		
+	  		//adjust width and height for window size
+	  		width = width   < (winWidth*options.maxsize)  ? width  : (winWidth*options.maxsize);
+	  		height = height < (winHeight*options.maxsize) ? height : (winHeight*options.maxsize);
+	  		
+	  		box.css({
+	  			'left': (winWidth*.5)  - (width*.5),
+	  			'top':  (winHeight*.5) - (height*.5),
+	  			'width':width,
+	  			'height':height
+	  		});
+			
+	  		wrapper.css({
+				'width':box.width(),
+				'height':box.height()
+			});
+	  	}
+  	}
+  	
+  	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  	// Methods ///////////////////////////////////////////////////////////////////////////////////////////
+  	
+  	function loadPanel($url,$post){
+  		if(options.usemodal){
+  			modal.css({
+	  			'width':$(window).width(),
+	  			'height':$(window).height()
+	  		}).fadeIn();
+  		}
+  		
+  		$(document.body).css('overflow','hidden');
+  		
+  		box
+	  		.addClass('loading')
+	  		.fadeIn();
+	  	
+	  	if($url.search(/\.jpg|\.png|\.gif/)!=-1){
+	  		content.empty();
+	  		var img = $('<img />')
+	  			.css({
+	  				'max-width':'99999%',
+	  				"position":"relative"
+	  			})
+	  			.attr({
+	  				"src":$url,
+	  				"class":"panel-solo"
+	  			})
+	  			.appendTo(content);
+	  			
+		  			
+	  		$("<div>").load($url,$post,function(){
+	  			positionPanel();
+		  	});
+	  	}else{
+	  		content.load($url,$post,function(){
+	  			positionPanel()
+	  			content.find(options.selector).click(function(e){
+	  				e.preventDefault();
+	  				loadPanel($(this).attr("href"));
+	  			});
+	  			
+	  			content.find('[rel^="action"]').click(function(e){
+	  				e.preventDefault();
+	  				panelAction($(this).attr("rel").split(":")[1]);
+	  			});
+	  			
+	  			content.find("form").submit(function(e){
+	  				e.preventDefault();
+	  				loadPanel($(this).attr("action"),$(this).formParams());
+	  			});
+	  		});
+	  	}
+	  	content.show();
+  	}
+  	
+  	function setPanel(){
+  		
+  	}
+  	
+  	function positionPanel(){
+  		//wrapper.css("opacity",0);		
+  		
+  		var winWidth = $(window).width();
+  		var winHeight = $(window).height();
+  		
+  		if(options.usemodal)modal.css({
+  			'width':winWidth,
+  			'height':winHeight
+  		});
+  		
+  		var width = content[0].scrollWidth;
+  		var height = content[0].scrollHeight;
+  		
+  		console.log(content[0]);
+  		
+  		// set scrolling
+  		wrapper.css('overflow-y',(height > (winHeight*options.maxsize)) ? 'scroll' : 'hidden');
+
+  		//adjust width and height for window size
+  		width = width   < (winWidth*options.maxsize)  ? width  : (winWidth*options.maxsize);
+  		height = height < (winHeight*options.maxsize) ? height : (winHeight*options.maxsize);
+
+  		box.clearQueue();
+  		box.css({
+  				'width':'auto',
+  				'height':'auto'
+  			})
+  			.animate({
+	  			'left': (winWidth*.5)  - (width*.5),
+	  			'top':  (winHeight*.5) - (height*.5),
+	  			'width':width,
+	  			'height':height
+	  		},{
+	  			'duration':500,
+	  			'complete':function(){
+	  			
+			  		wrapper.css({
+			  			'width':box.width(),
+			  			'height':box.height()
+		  			})
+		  			
+		  			box.css({
+			  			'width':'auto',
+			  			'height':'auto',
+			  			'overflow':'visible'
+			  		})
+			  	},
+			  	'step':function(){
+			  		wrapper.css({
+			  			'width':box.width(),
+			  			'height':box.height()
+		  			})
+			  	}
+	  		});
+  	}
+  	
+  	function panelAction(action){
+  		actions[action].call();
+  	}
+  	
+  	function closePanel(){
+  		$(document.body).css('overflow','auto');
+  		box.fadeOut(750,function(){
+  			content.empty();
+  			wrapper.css({
+  				'width':1,
+  				'height':1
+  			});
+  			box.css({
+	  			'left':($(window).width()*.5)-box.outerWidth(),
+	  			'top':($(window).height()*.5)-box.outerHeight()
+  			})
+  			if(options.usemodal){
+  				modal.fadeOut();
+  			}
+  		});
+  	}
+  	
+  	// Make It Happen
+  	this.click(function(e){
+  		e.preventDefault();
+  		loadPanel($(this).attr("href"));
+  	});
+  	
+  	$(window).bind("resize",function(){
+  		if(box.css('display')=="block")positionPanel();
+  	});
+  	
+  }
+})( jQuery );
+
+
+// FORM DATA //
+
 (function( $ ) {	
 	var radioCheck = /radio|checkbox/i,
 		keyBreaker = /[^\[\]]+/g,
@@ -106,260 +367,3 @@
 	});
 
 }(jQuery));
-
-(function( $ ) {
-  $.fn.panel = function(settings) {
-  	var options = {
-  		"close":"<span>close</span>",
-  		"id":"Panel",
-  		"selector":this.selector,
-  		"usemodal":true,
-  		"modalclose":true,
-  		"maxsize":0.9
-  	}
-  	
-  	var actions = {
-  		"close":closePanel,
-  		'resize':positionPanel
-  	}
-  	
-  	// set user options
-  	$.extend(options,settings);
-  	
-  	if($('#'+options.id).length==0){
-	  	var container = $('<div id="'+options.id+'"></div>').appendTo(document.body).css({
-	  		'position':'fixed',
-	  		'left':0,
-	  		'top':0,
-	  		'width':1,
-	  		'height':1,
-	  		'z-index':9999
-	  	})
-	  	
-	  	// embed the modal
-	  	if(options.usemodal){
-	  		var modal = $('<div class="modal">&nbsp;</div>')
-	  			.appendTo(container);
-	  		if(options.modalclose)modal.click(function(){
-	  			closePanel();
-	  		})
-	  	}
-	  	  	
-	  	// embed panel box
-	  	var box = $('<div class="box"><div class="wrapper"><div class="content"></div></div></div>')
-	  		.appendTo(container)
-	  		.css({
-	  			'position':'fixed',
-	  			'left':($(window).width()*.5),
-	  			'top':($(window).height()*.5)
-	  		})
-	  		.hide();
-		
-		var wrapper = box.find('.wrapper')
-			.css({
-				'overflow':'hidden',
-				'width':1,
-				'height':1
-			});
-		
-	  	// identify content box
-	  	var content = box.find(".content")
-	  		.css({
-	  			"height":"auto"
-	  		});
-  	}
-  	// Setup Closer
-  	if(options.close.length>0){
-  		var closer = $('<div class="closer">'+options.close+'</div>')
-  			.appendTo(box)
-  			.click(function(){
-  				closePanel();
-  			});
-  	}
-  	
-  	$.fn.panelbox = {
-  		'updatesize':function (){
-	  		var winWidth = $(window).width();
-	  		var winHeight = $(window).height();
-	  		
-	  		if(options.usemodal)modal.css({
-	  			'width':winWidth,
-	  			'height':winHeight
-	  		});
-	  		
-	  		var width = content[0].scrollWidth;
-	  		var height = content[0].scrollHeight;	  		
-	  		
-	  		// set scrolling
-	  		wrapper.css('overflow-y',(height > (winHeight*options.maxsize)) ? 'scroll' : 'hidden');
-	  		  		
-	  		//adjust width and height for window size
-	  		width = width   < (winWidth*options.maxsize)  ? width  : (winWidth*options.maxsize);
-	  		height = height < (winHeight*options.maxsize) ? height : (winHeight*options.maxsize);
-	  		
-	  		console.log('winning -> width='+width+' : height='+height);
-	  		
-	  		box.css({
-	  			'left': (winWidth*.5)  - (width*.5),
-	  			'top':  (winHeight*.5) - (height*.5),
-	  			'width':width,
-	  			'height':height
-	  		});
-			
-	  		wrapper.css({
-				'width':box.width(),
-				'height':box.height()
-			});
-	  	}
-  	}
-  	
-  	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  	// Methods ///////////////////////////////////////////////////////////////////////////////////////////
-  	
-  	function loadPanel($url,$post){
-  		if(options.usemodal){
-  			modal.css({
-	  			'width':$(window).width(),
-	  			'height':$(window).height()
-	  		}).fadeIn();
-  		}
-  		
-  		$(document.body).css('overflow','hidden');
-  		
-  		box
-	  		.addClass('loading')
-	  		.fadeIn();
-	  	
-	  	if($url.search(/\.jpg|\.png|\.gif/)!=-1){
-	  		content.empty();
-	  		var img = $('<img />')
-	  			.css({
-	  				'max-width':'99999%',
-	  				"position":"relative"
-	  			})
-	  			.attr({
-	  				"src":$url,
-	  				"class":"solo"
-	  			})
-	  			.appendTo(content);
-	  			
-		  			
-	  		$("<div>").load($url,$post,function(){
-	  			positionPanel();
-		  	});
-	  	}else{
-	  		content.load($url,$post,function(){
-	  			positionPanel()
-	  			content.find(options.selector).click(function(e){
-	  				e.preventDefault();
-	  				loadPanel($(this).attr("href"));
-	  			});
-	  			
-	  			content.find('[rel^="action"]').click(function(e){
-	  				e.preventDefault();
-	  				panelAction($(this).attr("rel").split(":")[1]);
-	  			});
-	  			
-	  			content.find("form").submit(function(e){
-	  				e.preventDefault();
-	  				loadPanel($(this).attr("action"),$(this).formParams());
-	  			});
-	  		});
-	  	}
-	  	content.show();
-  	}
-  	
-  	function setPanel(){
-  		
-  	}
-  	
-  	function positionPanel(){
-  		//wrapper.css("opacity",0);		
-  		
-  		var winWidth = $(window).width();
-  		var winHeight = $(window).height();
-  		
-  		if(options.usemodal)modal.css({
-  			'width':winWidth,
-  			'height':winHeight
-  		});
-  		
-  		var width = content[0].scrollWidth;
-  		var height = content[0].scrollHeight;
-  		
-  		
-  		// set scrolling
-  		wrapper.css('overflow-y',(height > (winHeight*options.maxsize)) ? 'scroll' : 'hidden');
-  		  		
-  		//adjust width and height for window size
-  		width = width   < (winWidth*options.maxsize)  ? width  : (winWidth*options.maxsize);
-  		height = height < (winHeight*options.maxsize) ? height : (winHeight*options.maxsize);
-  		  		
-  		box.clearQueue();
-  		box.css({
-  				'width':'auto',
-  				'height':'auto'
-  			})
-  			.animate({
-	  			'left': (winWidth*.5)  - (width*.5),
-	  			'top':  (winHeight*.5) - (height*.5),
-	  			'width':width,
-	  			'height':height
-	  		},{
-	  			'duration':500,
-	  			'complete':function(){
-	  			
-			  		wrapper.css({
-			  			'width':box.width(),
-			  			'height':box.height()
-		  			})
-		  			
-		  			box.css({
-			  			'width':'auto',
-			  			'height':'auto',
-			  			'overflow':'visible'
-			  		})
-			  	},
-			  	'step':function(){
-			  		wrapper.css({
-			  			'width':box.width(),
-			  			'height':box.height()
-		  			})
-			  	}
-	  		});
-  	}
-  	
-  	function panelAction(action){
-  		actions[action].call();
-  	}
-  	
-  	function closePanel(){
-  		$(document.body).css('overflow','auto');
-  		box.fadeOut(750,function(){
-  			content.empty();
-  			wrapper.css({
-  				'width':1,
-  				'height':1
-  			});
-  			box.css({
-	  			'left':($(window).width()*.5)-box.outerWidth(),
-	  			'top':($(window).height()*.5)-box.outerHeight()
-  			})
-  			if(options.usemodal){
-  				modal.fadeOut();
-  			}
-  		});
-  	}
-  	
-  	// Make It Happen
-  	this.click(function(e){
-  		e.preventDefault();
-  		loadPanel($(this).attr("href"));
-  	});
-  	
-  	$(window).bind("resize",function(){
-  		if(box.css('display')=="block")positionPanel();
-  	});
-  	
-  }
-})( jQuery );
